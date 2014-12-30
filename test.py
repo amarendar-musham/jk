@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-ZetCode PyQt4 tutorial 
+EEG
 
 """
 
@@ -21,7 +21,9 @@ class Example(QtGui.QMainWindow):
 
     def initUI(self):
 
-        self.current_signal_val=None
+        self.current_signal_val= 0
+        self.current_data = ''
+        self.current_channel = 0
 
         exitAction = QtGui.QAction(QtGui.QIcon('delete85.png'), 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -37,16 +39,22 @@ class Example(QtGui.QMainWindow):
         self.cw = QtGui.QWidget()
 
         self.plot1 = PlotWidget(name='Display')
+
         self.chCombo = QtGui.QComboBox()
+        self.chCombo.activated[str].connect(self.channelclick)
         self.lbl = QtGui.QLabel("Channel")
+
         self.Data = QtGui.QComboBox()
+        self.Data.activated[str].connect(self.dataclick)
         self.lbl2 = QtGui.QLabel("Data")
 
         self.hbox1 = QtGui.QHBoxLayout()#
         self.hbox1.addWidget(self.plot1)
         self.hbox2 = QtGui.QHBoxLayout()
+        self.hbox2.addStretch(1)
         self.hbox2.addWidget(self.lbl)
         self.hbox2.addWidget(self.chCombo)
+        self.hbox2.addStretch(1)
         self.hbox2.addWidget(self.lbl2)
         self.hbox2.addWidget(self.Data)
 
@@ -73,19 +81,32 @@ class Example(QtGui.QMainWindow):
             if type(self.mat[record]) != type(''):
                 self.Data.addItem(record)
 
-        self.current_signal_val=self.mat[self.mat.keys()[0]][0]
+        self.current_data = self.mat.keys()[0]
+        self.current_signal_val=self.mat[self.current_data][0]
+
         self.p1.setData(self.current_signal_val)
         i=0
         while i < self.mat[self.mat.keys()[0]].shape[0]:
             self.chCombo.addItem(str(i))
             i=i+1
 
-    def dataclick(self):
-        pass
 
-    def channelclick(self):
-        pass
+    def dataclick(self, index):
+        print index
+        if str(index) is not  '__globals__':
+            self.current_data = str(index)
+            self.current_channel = 0
+            self.current_signal_val=self.mat[self.current_data][0]
+            self.updateplot()
 
+    def channelclick(self,index):
+        self.current_channel = int(index)
+        self.current_signal_val=self.mat[self.current_data][self.current_channel]
+        print self.current_signal_val
+        self.updateplot()
+
+    def updateplot(self):
+        self.p1.setData(self.current_signal_val)
 
 def main():
 
