@@ -42,7 +42,7 @@ class Example(QtGui.QMainWindow):
         self.Data = QtGui.QComboBox()
         self.lbl2 = QtGui.QLabel("Data")
 
-        self.hbox1 = QtGui.QHBoxLayout()
+        self.hbox1 = QtGui.QHBoxLayout()#
         self.hbox1.addWidget(self.plot1)
         self.hbox2 = QtGui.QHBoxLayout()
         self.hbox2.addWidget(self.lbl)
