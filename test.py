@@ -1,14 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+
 """
 Conativa
+
+https://blog.dlasley.net/2013/01/generic-worker-thread-pyqt/
 
 """
 
 import scipy.io as sio
 from pyqtgraph import *
 from PyQt4 import QtGui,QtCore
+import mlpy.wavelet as wave
+
 
 class Example(QtGui.QMainWindow):
 
@@ -23,6 +28,8 @@ class Example(QtGui.QMainWindow):
         self.current_data = ''
         self.current_channel = 0
 
+        self.current_signal_array = np.array([0])
+
         self.toolbar = self.addToolBar('Tool')
 
 
@@ -31,7 +38,7 @@ class Example(QtGui.QMainWindow):
         importAction.triggered.connect(self.importconnect)
         self.toolbar.addAction(importAction)
 
-        waveletAction = QtGui.QAction(QtGui.QIcon('wavelet.png'),'Wavelet',self)
+        waveletAction = QtGui.QAction(QtGui.QIcon('wavelets.png'),'Wavelet',self)
         waveletAction.setShortcut('Ctrl+W')
         waveletAction.triggered.connect(self.WaveletClick)
         self.toolbar.addAction(waveletAction)
@@ -47,6 +54,8 @@ class Example(QtGui.QMainWindow):
         self.cw = QtGui.QWidget()
 
         self.plot1 = PlotWidget(name='Display')
+        self.plot1.setMaximumHeight(200)
+
 
 
         self.chCombo = QtGui.QComboBox()
@@ -67,15 +76,29 @@ class Example(QtGui.QMainWindow):
         self.hbox2.addWidget(self.lbl2)
         self.hbox2.addWidget(self.Data)
 
-
-
         self.vbox1 = QtGui.QVBoxLayout()
         self.vbox1.addLayout(self.hbox1)
         self.vbox1.addLayout(self.hbox2)
 
 
+
+        self.wavelettabwidget = QtGui.QTabWidget()
+        self.wavelettab = QtGui.QWidget()
+        self.waveletlayout = QtGui.QVBoxLayout()
+
+        self.wavelettabwidget.addTab(self.wavelettab,"cwt")
+        self.waveletplot = ImageView()
+        self.waveletlayout.addWidget(self.waveletplot)
+        self.waveletplot.show()
+        self.wavelettab.setLayout(self.waveletlayout)
+        self.vbox1.addWidget(self.wavelettabwidget)
+
+
+
         self.p1 = self.plot1.plot()
         self.p1.setData( np.random.random(90))
+
+
 
         self.cw.setLayout(self.vbox1)
         self.setCentralWidget(self.cw)
@@ -117,21 +140,33 @@ class Example(QtGui.QMainWindow):
     def updateplot(self):
         self.p1.setData(self.current_signal_val)
 
+    def updateWaveletplot(self,data):
+         print data
+         self.waveletplot.setImage(data.T)
+
+
     def WaveletClick(self):
 
-        self.waveletThread = WaveletThread()
+        self.waveletThread = WaveletThread(self.updateWaveletplot,self.current_signal_val)
         self.waveletThread.start()
 
 
 
 
 class WaveletThread(QtCore.QThread):
-    def __init__(self,parent = None):
-        super(WaveletThread, self).__init__(parent)
+
+    finished = QtCore.pyqtSignal(type(np.array([0])))
+    def __init__(self,ret_function,*args):
+        super(WaveletThread, self).__init__(parent = None)
+        self.input = np.array(args)[0]
+        print self.input.shape
+        self.finished.connect(ret_function)
+
 
     def run(self):
         print "ok"
-        self.emit(Signal)
+        scales = wave.autoscales( self.input.shape[0], 1,0.25,'dog',2)
+        self.finished.emit(wave.cwt(self.input,1,scales,'dog',2) )
 
 
 
