@@ -81,7 +81,7 @@ class Example(QtGui.QMainWindow):
         self.vbox1.addLayout(self.hbox2)
 
 
-
+        ##############################################################
         self.wavelettabwidget = QtGui.QTabWidget()
         self.wavelettab = QtGui.QWidget()
         self.waveletlayout = QtGui.QVBoxLayout()
@@ -92,7 +92,7 @@ class Example(QtGui.QMainWindow):
         self.waveletplot.show()
         self.wavelettab.setLayout(self.waveletlayout)
         self.vbox1.addWidget(self.wavelettabwidget)
-
+        ############################################################
 
 
         self.p1 = self.plot1.plot()
