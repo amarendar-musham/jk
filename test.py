@@ -13,6 +13,7 @@ import scipy.io as sio
 from pyqtgraph import *
 from PyQt4 import QtGui,QtCore
 import mlpy.wavelet as wave
+import interpol3
 
 
 class Example(QtGui.QMainWindow):
@@ -24,7 +25,7 @@ class Example(QtGui.QMainWindow):
 
     def initUI(self):
 
-        self.current_signal_val= 0
+        self.current_signal_val= np.random.random(90)
         self.current_data = ''
         self.current_channel = 0
 
@@ -42,6 +43,11 @@ class Example(QtGui.QMainWindow):
         waveletAction.setShortcut('Ctrl+W')
         waveletAction.triggered.connect(self.WaveletClick)
         self.toolbar.addAction(waveletAction)
+        
+        EMDAction = QtGui.QAction(QtGui.QIcon('EMD.png'),'EMD',self)
+        EMDAction.setShortcut('Ctrl+E')
+        EMDAction.triggered.connect(self.EMDClick)
+        self.toolbar.addAction(EMDAction)
 
 
         exitAction = QtGui.QAction(QtGui.QIcon('delete85.png'), 'Exit', self)
@@ -55,7 +61,6 @@ class Example(QtGui.QMainWindow):
 
         self.plot1 = PlotWidget(name='Display')
         self.plot1.setMaximumHeight(200)
-
 
 
         self.chCombo = QtGui.QComboBox()
@@ -82,6 +87,8 @@ class Example(QtGui.QMainWindow):
 
 
         ##############################################################
+        # Wavelet GUI
+
         self.wavelettabwidget = QtGui.QTabWidget()
         self.wavelettab = QtGui.QWidget()
         self.waveletlayout = QtGui.QVBoxLayout()
@@ -94,11 +101,44 @@ class Example(QtGui.QMainWindow):
         self.vbox1.addWidget(self.wavelettabwidget)
         ############################################################
 
+        #################################################################
+        #EMD GUI
 
-        self.p1 = self.plot1.plot()
-        self.p1.setData( np.random.random(90))
+        self.emdtab = QtGui.QWidget()
+        self.emdlayout = QtGui.QVBoxLayout()
+        self.wavelettabwidget.addTab(self.emdtab,"EMD")
+        self.p1 = PlotWidget(name='IMF1')
+        self.p1.setLabel('left','IMF1')
+        self.emdlayout.addWidget(self.p1)
+
+        self.p2 = PlotWidget(name='IMF2')
+        self.p2.setLabel('left','IMF2')
+        self.emdlayout.addWidget(self.p2)
+
+        self.p3 = PlotWidget(name='IMF3')
+        self.p3.setLabel('left','IMF3')
+        self.emdlayout.addWidget(self.p3)
+
+        self.p4 = PlotWidget(name='IMF4')
+        self.p4.setLabel('left','IMF4')
+        self.emdlayout.addWidget(self.p4)
+
+        self.p5 = PlotWidget(name='IMF5')
+        self.p5.setLabel('left','IMF5')
+        self.emdlayout.addWidget(self.p5)
+
+        self.p_res = PlotWidget(name='IMF_res')
+        self.p_res.setLabel('left','IMF_res')
+        self.emdlayout.addWidget(self.p_res)
 
 
+
+        self.emdtab.setLayout(self.emdlayout)
+        #################################################################
+
+
+        self.p0 = self.plot1.plot()
+        self.p0.setData( self.current_signal_val)
 
         self.cw.setLayout(self.vbox1)
         self.setCentralWidget(self.cw)
@@ -109,7 +149,7 @@ class Example(QtGui.QMainWindow):
         self.chCombo.clear()
         self.Data.clear()
         self.fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file','',"Mat files(*.mat)")
-        print self.fname
+        #print self.fname
         self.mat=sio.loadmat(str(self.fname))
         for record in self.mat.keys():
             if type(self.mat[record]) != (type('')):
@@ -119,7 +159,7 @@ class Example(QtGui.QMainWindow):
         self.current_data = self.mat.keys()[0]
         self.current_signal_val=self.mat[self.current_data][0]
 
-        self.p1.setData(self.current_signal_val)
+        self.p0.setData(self.current_signal_val)
         i=0
         while i < self.mat[self.mat.keys()[0]].shape[0]:
             self.chCombo.addItem(str(i))
@@ -138,17 +178,38 @@ class Example(QtGui.QMainWindow):
         self.updateplot()
 
     def updateplot(self):
-        self.p1.setData(self.current_signal_val)
+        self.p0.setData(self.current_signal_val)
 
     def updateWaveletplot(self,data):
-         print data
+
          self.waveletplot.setImage(data.T)
 
+    def updateEMDplot(self,data):
+
+         self.p1.plotItem.clear()
+         self.p2.plotItem.clear()
+         self.p3.plotItem.clear()
+         self.p4.plotItem.clear()
+         self.p5.plotItem.clear()
+         self.p_res.plotItem.clear()
+
+         self.p1.plotItem.plot(data[1])
+         self.p2.plotItem.plot(data[2])
+         self.p3.plotItem.plot(data[3])
+         self.p4.plotItem.plot(data[4])
+         self.p5.plotItem.plot(data[5])
+         self.p_res.plotItem.plot(data[6])
 
     def WaveletClick(self):
 
         self.waveletThread = WaveletThread(self.updateWaveletplot,self.current_signal_val)
         self.waveletThread.start()
+
+    def EMDClick(self):
+
+        self.emdthread = EMDthread(self.updateEMDplot  ,  self.current_signal_val)
+       # print self.current_signal_val
+        self.emdthread.start()
 
 
 
@@ -159,17 +220,25 @@ class WaveletThread(QtCore.QThread):
     def __init__(self,ret_function,*args):
         super(WaveletThread, self).__init__(parent = None)
         self.input = np.array(args)[0]
-        print self.input.shape
+       # print self.input.shape
         self.finished.connect(ret_function)
 
 
     def run(self):
-        print "ok"
         scales = wave.autoscales( self.input.shape[0], 1,0.25,'dog',2)
         self.finished.emit(wave.cwt(self.input,1,scales,'dog',2) )
 
 
+class EMDthread(QtCore.QThread):
+    finished = QtCore.pyqtSignal(type(np.array([0])))
+    def __init__(self,ret_function,*args):
+        super( EMDthread ,self).__init__()
+        self.input = np.array(args)[0]
+        print self.input.shape
+        self.finished.connect(ret_function)
 
+    def run(self):
+        self.finished.emit(interpol3.emd(self.input,6))
 
 
 
