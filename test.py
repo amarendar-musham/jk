@@ -14,6 +14,7 @@ from pyqtgraph import *
 from PyQt4 import QtGui,QtCore
 import mlpy.wavelet as wave
 import interpol3
+import bsft4
 
 
 class Example(QtGui.QMainWindow):
@@ -25,7 +26,7 @@ class Example(QtGui.QMainWindow):
 
     def initUI(self):
 
-        self.current_signal_val= np.random.random(90)
+        self.current_signal_val= np.random.random(400)
         self.current_data = ''
         self.current_channel = 0
 
@@ -48,6 +49,11 @@ class Example(QtGui.QMainWindow):
         EMDAction.setShortcut('Ctrl+E')
         EMDAction.triggered.connect(self.EMDClick)
         self.toolbar.addAction(EMDAction)
+        
+        FBAction = QtGui.QAction(QtGui.QIcon('FB.png'),'FB',self)
+        FBAction.setShortcut('Ctrl+E')
+        FBAction.triggered.connect(self.FBClick)
+        self.toolbar.addAction(FBAction)
 
 
         exitAction = QtGui.QAction(QtGui.QIcon('delete85.png'), 'Exit', self)
@@ -93,7 +99,7 @@ class Example(QtGui.QMainWindow):
         self.wavelettab = QtGui.QWidget()
         self.waveletlayout = QtGui.QVBoxLayout()
 
-        self.wavelettabwidget.addTab(self.wavelettab,"cwt")
+        self.wavelettabwidget.addTab(self.wavelettab,"CWT")
         self.waveletplot = ImageView()
         self.waveletlayout.addWidget(self.waveletplot)
         self.waveletplot.show()
@@ -131,9 +137,36 @@ class Example(QtGui.QMainWindow):
         self.p_res.setLabel('left','IMF_res')
         self.emdlayout.addWidget(self.p_res)
 
-
-
         self.emdtab.setLayout(self.emdlayout)
+        #################################################################
+        
+        #################################################################
+        # Fourier-Bessel 
+        
+        self.FBtab = QtGui.QWidget()
+        self.FBlayout = QtGui.QVBoxLayout()
+        self.wavelettabwidget.addTab(self.FBtab,"FB")
+        self.f1 = PlotWidget(name='delta')
+        self.f1.setLabel('left','delta')
+        self.FBlayout.addWidget(self.f1)
+
+        self.f2 = PlotWidget(name='theta')
+        self.f2.setLabel('left','theta')
+        self.FBlayout.addWidget(self.f2)
+
+        self.f3 = PlotWidget(name='alpha')
+        self.f3.setLabel('left','alpha')
+        self.FBlayout.addWidget(self.f3)
+
+        self.f4 = PlotWidget(name='beta')
+        self.f4.setLabel('left','beta')
+        self.FBlayout.addWidget(self.f4)
+
+        self.f5 = PlotWidget(name='gamma')
+        self.f5.setLabel('left','gamma')
+        self.FBlayout.addWidget(self.f5)
+
+        self.FBtab.setLayout(self.FBlayout)
         #################################################################
 
 
@@ -148,7 +181,7 @@ class Example(QtGui.QMainWindow):
     def importconnect(self):
         self.chCombo.clear()
         self.Data.clear()
-        self.fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file','',"Mat files(*.mat)")
+        self.fname = QtGui.QFileDialog.getOpenFileName( self, 'Open file','',"Mat files(*.mat)")
         #print self.fname
         self.mat=sio.loadmat(str(self.fname))
         for record in self.mat.keys():
@@ -199,6 +232,20 @@ class Example(QtGui.QMainWindow):
          self.p4.plotItem.plot(data[4])
          self.p5.plotItem.plot(data[5])
          self.p_res.plotItem.plot(data[6])
+        
+    def updatefbplot(self,data):
+
+         self.f1.plotItem.clear()
+         self.f2.plotItem.clear()
+         self.f3.plotItem.clear()
+         self.f4.plotItem.clear()
+         self.f5.plotItem.clear()
+
+         self.f1.plotItem.plot(data[0])
+         self.f2.plotItem.plot(data[1])
+         self.f3.plotItem.plot(data[2])
+         self.f4.plotItem.plot(data[3])
+         self.f5.plotItem.plot(data[4])
 
     def WaveletClick(self):
 
@@ -210,6 +257,12 @@ class Example(QtGui.QMainWindow):
         self.emdthread = EMDthread(self.updateEMDplot  ,  self.current_signal_val)
        # print self.current_signal_val
         self.emdthread.start()
+        
+    def FBClick(self):
+
+        self.fbthread = FBthread(self.updatefbplot  ,  self.current_signal_val)
+        #print self.current_signal_val
+        self.fbthread.start()
 
 
 
@@ -240,10 +293,22 @@ class EMDthread(QtCore.QThread):
     def run(self):
         self.finished.emit(interpol3.emd(self.input,6))
 
+class FBthread(QtCore.QThread):
+    finished = QtCore.pyqtSignal(type(np.array([0])))
+    def __init__(self,ret_function,*args):
+        super( FBthread ,self).__init__()
+        self.input = np.array(args)[0]
+        print self.input.shape
+        self.finished.connect(ret_function)
+
+    def run(self):
+        self.finished.emit(bsft4.fbdecomp(self.input))
+
+
+
 
 
 def main():
-
     app = QtGui.QApplication(sys.argv)
     ex = Example()
     sys.exit(app.exec_())
